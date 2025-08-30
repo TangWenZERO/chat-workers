@@ -204,7 +204,7 @@ export default {
 				},
 				body: JSON.stringify({
 					model: model || 'gpt-3.5-turbo',
-					messages,
+					input: messages,
 					stream: true,
 				}),
 			});
@@ -246,7 +246,7 @@ export default {
 
 			try {
 				const { messages, token = '', type = 'deepseek' } = await request.json();
-				const model = type === 'chatgpt' ? 'gpt-5-mini' : 'deepseek-chat';
+				const model = type === 'chatgpt' ? 'gpt-5' : 'deepseek-chat';
 				// 根据 type 参数选择不同的 API
 				let response;
 				if (type === 'chatgpt') {
