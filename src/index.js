@@ -245,8 +245,8 @@ export default {
 			}
 
 			try {
-				const { messages, model, token = '', type = 'deepseek' } = await request.json();
-
+				const { messages, token = '', type = 'deepseek' } = await request.json();
+				const model = type === 'chatgpt' ? 'gpt-5-mini' : 'deepseek-chat';
 				// 根据 type 参数选择不同的 API
 				let response;
 				if (type === 'chatgpt') {
