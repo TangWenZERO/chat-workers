@@ -189,7 +189,7 @@ export default {
 
 		// 调用 ChatGPT API
 		async function callChatGPTAPI(messages, model, token) {
-			const CHATGPT_API_URL = 'https://api.openai.com/v1/responses';
+			const CHATGPT_API_URL = 'https://api.openai.com/v1/chat/completions';
 			const API_KEY = token;
 
 			if (!API_KEY) {
@@ -204,7 +204,7 @@ export default {
 				},
 				body: JSON.stringify({
 					model: model || 'gpt-3.5-turbo',
-					input: messages,
+					messages,
 					stream: true,
 				}),
 			});
