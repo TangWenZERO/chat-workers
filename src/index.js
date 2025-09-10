@@ -1,5 +1,4 @@
 import { createSchema, createYoga } from 'graphql-yoga';
-import { GraphQLJSON } from 'graphql-type-json';
 /**
  * Welcome to Cloudflare Workers! This is your first worker.
  *
@@ -194,7 +193,7 @@ const yoga = createYoga({
 			}
 
 			type Subscription {
-				chatStream(prompt: JSON!, token: String!): String!
+				chatStream(prompt: String!, token: String!): String!
 			}
 		`,
 		resolvers: {
