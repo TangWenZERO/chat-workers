@@ -1,3 +1,4 @@
+import { createSchema, createYoga } from 'graphql-yoga';
 /**
  * Welcome to Cloudflare Workers! This is your first worker.
  *
@@ -85,7 +86,132 @@ async function processDeepSeekStream(reader, decoder, writer) {
 		await writer.close();
 	}
 }
+// graphql 请求deepseek 返回流数据 函数
+const graphQlMessage = async function* (_parent, args) {
+	const { prompt, token } = args;
+	const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${token}`,
+		},
+		body: JSON.stringify({
+			model: model || 'deepseek-chat',
+			messages: prompt,
+			stream: true,
+		}),
+	});
+	if (!response.ok) {
+		const errorText = await response.text();
+		console.error('DeepSeek API error:', errorText);
+		throw new Error(`DeepSeek API error: ${response.status}`);
+	}
+	const reader = response.body.getReader();
+	const decoder = new TextDecoder();
+	try {
+		let buffer = '';
 
+		while (true) {
+			const { done, value } = await reader.read();
+
+			if (done) {
+				// Send final event
+				await writer.write(new TextEncoder().encode('event: done\ndata: [DONE]\n\n'));
+				await writer.close();
+				break;
+			}
+
+			buffer += decoder.decode(value, { stream: true });
+
+			// Process complete lines
+			const lines = buffer.split('\n');
+			buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+			for (const line of lines) {
+				const trimmedLine = line.trim();
+
+				if (trimmedLine === '') continue;
+
+				if (trimmedLine.startsWith('data: ')) {
+					const data = trimmedLine.slice(6);
+
+					if (data === '[DONE]') {
+						await writer.write(new TextEncoder().encode('event: done\ndata: [DONE]\n\n'));
+						continue;
+					}
+
+					try {
+						const parsed = JSON.parse(data);
+
+						// Extract the content from the response
+						if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta) {
+							const delta = parsed.choices[0].delta;
+
+							if (delta.content) {
+								// Send the content as SSE
+								const sseData = JSON.stringify({
+									content: delta.content,
+									id: parsed.id,
+									model: parsed.model,
+									created: parsed.created,
+								});
+								yield { chatStream: new TextEncoder().encode(`data: ${sseData}\n\n`) };
+							}
+
+							// Handle finish reason
+							if (parsed.choices[0].finish_reason) {
+								const finishData = JSON.stringify({
+									finish_reason: parsed.choices[0].finish_reason,
+									id: parsed.id,
+								});
+								yield { chatStream: new TextEncoder().encode(`event: finish\ndata: ${finishData}\n\n`) };
+							}
+						}
+					} catch (parseError) {
+						console.error('JSON parse error:', parseError, 'Data:', data);
+					}
+				}
+			}
+		}
+	} catch (error) {
+		console.error('Stream processing error:', error);
+
+		// Send error event
+		const errorData = JSON.stringify({ error: error.message });
+		await writer.write(new TextEncoder().encode(`event: error\ndata: ${errorData}\n\n`));
+		await writer.close();
+	}
+};
+// 创建graphql实例
+const yoga = createYoga({
+	schema: createSchema({
+		typeDefs: /* GraphQL */ `
+			type Query {
+				message: String!
+				model: String!
+				token: String!
+			}
+
+			type Subscription {
+				chatStream(prompt: String!, token: String!): String!
+			}
+		`,
+		resolvers: {
+			Query: {
+				hello: () => 'Hello World!',
+			},
+			Subscription: {
+				chatStream: {
+					subscribe: graphQlMessage,
+				},
+			},
+		},
+	}),
+	graphqlEndpoint: '/graphql',
+	graphiql: {
+		subscriptionsProtocol: 'SSE',
+	},
+});
 export default {
 	async fetch(request, env, ctx) {
 		// 调用 DeepSeek API
@@ -145,19 +271,19 @@ export default {
 			if (request.method !== 'POST') {
 				return new Response('Method not allowed', { status: 405 });
 			}
-			
+
 			try {
 				const { messages, model, token = '' } = await request.json();
-				
+
 				// 调用 DeepSeek API
 				const response = await callDeepSeekAPI(messages, model, token);
-				
+
 				// 创建SSE输出数据
 				const { readable, writable } = new TransformStream();
 				const writer = writable.getWriter();
 				const reader = response.body.getReader();
 				const decoder = new TextDecoder();
-				
+
 				// 处理 DeepSeek 流数据
 				processDeepSeekStream(reader, decoder, writer);
 
@@ -174,6 +300,12 @@ export default {
 				console.error('Error:', error);
 				return new Response(`Internal server error: ${error.message}`, { status: 500 });
 			}
+		}
+		/**
+		 * graphql 返回sse 数据
+		 */
+		if (url.pathname === '/graphql/sse') {
+			return yoga.fetch(request);
 		}
 
 		return new Response('Hello World!');
