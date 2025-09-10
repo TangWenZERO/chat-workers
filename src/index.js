@@ -89,6 +89,16 @@ async function processDeepSeekStream(reader, decoder, writer) {
 // graphql 请求deepseek 返回流数据 函数
 const graphQlMessage = async function* (_parent, args) {
 	const { prompt, token } = args;
+	
+	// 获取模型名称，如果未提供则使用默认值
+	const getModelName = () => {
+		// 如果有全局model变量则使用，否则使用默认值
+		if (typeof model !== 'undefined') {
+			return model;
+		}
+		return 'deepseek-chat';
+	};
+	
 	const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
 		method: 'POST',
 		headers: {
@@ -96,7 +106,7 @@ const graphQlMessage = async function* (_parent, args) {
 			Authorization: `Bearer ${token}`,
 		},
 		body: JSON.stringify({
-			model: model || 'deepseek-chat',
+			model: getModelName(),
 			messages: prompt,
 			stream: true,
 		}),
@@ -106,8 +116,13 @@ const graphQlMessage = async function* (_parent, args) {
 		console.error('DeepSeek API error:', errorText);
 		throw new Error(`DeepSeek API error: ${response.status}`);
 	}
+	
+	// 创建流处理需要的组件
+	const { readable, writable } = new TransformStream();
+	const writer = writable.getWriter();
 	const reader = response.body.getReader();
 	const decoder = new TextDecoder();
+	
 	try {
 		let buffer = '';
 
@@ -193,7 +208,12 @@ const yoga = createYoga({
 			}
 
 			type Subscription {
-				chatStream(prompt: String!, token: String!): String!
+				chatStream(prompt: [MessageInput!]!, token: String!): String!
+			}
+			
+			input MessageInput {
+				role: String!
+				content: String!
 			}
 		`,
 		resolvers: {
@@ -215,7 +235,7 @@ const yoga = createYoga({
 	},
 	cors: {
 		origin: '*', // 允许所有域访问（生产可改成具体域名）
-		credentials: true,
+		credentials: false, // 当 origin 为 '*' 时，credentials 应为 false
 		allowedHeaders: ['Content-Type', 'Authorization'],
 		methods: ['GET', 'POST', 'OPTIONS'],
 	},
@@ -301,7 +321,7 @@ export default {
 						'Cache-Control': 'no-cache',
 						Connection: 'keep-alive',
 						'Access-Control-Allow-Origin': '*',
-						'Access-Control-Allow-Credentials': 'Content-type',
+						'Access-Control-Allow-Credentials': 'true',
 					},
 				});
 			} catch (error) {
