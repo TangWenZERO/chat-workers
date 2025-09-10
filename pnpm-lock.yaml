@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      graphql-type-json:
+        specifier: ^0.3.2
+        version: 0.3.2(graphql@16.11.0)
       graphql-yoga:
         specifier: ^5.15.2
         version: 5.15.2(graphql@16.11.0)
@@ -891,6 +894,11 @@ packages:
 
   glob-to-regexp@0.4.1:
     resolution: {integrity: sha512-lkX1HJXwyMcprw/5YUZc2s7DrpAiHB21/V+E1rHUrVNokkvB6bqMzT0VfV6/86ZNabt1k14YOIaT7nDvOX3Iiw==}
+
+  graphql-type-json@0.3.2:
+    resolution: {integrity: sha512-J+vjof74oMlCWXSvt0DOf2APEdZOCdubEvGDUAlqH//VBYcOYsGgRW7Xzorr44LvkjiuvecWc8fChxuZZbChtg==}
+    peerDependencies:
+      graphql: '>=0.8.0'
 
   graphql-yoga@5.15.2:
     resolution: {integrity: sha512-8cAdS1HNz5XRfYwr+t3jPP9KTyws1G0fYYaLZ5kgqXbcDJLhGjF1RVL21qL86g+DdmNi7uR+g4R+Zgzz6GBAzw==}
@@ -1820,6 +1828,10 @@ snapshots:
     optional: true
 
   glob-to-regexp@0.4.1: {}
+
+  graphql-type-json@0.3.2(graphql@16.11.0):
+    dependencies:
+      graphql: 16.11.0
 
   graphql-yoga@5.15.2(graphql@16.11.0):
     dependencies:
