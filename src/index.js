@@ -213,6 +213,12 @@ const yoga = createYoga({
 	graphiql: {
 		subscriptionsProtocol: 'SSE',
 	},
+	cors: {
+		origin: '*', // 允许所有域访问（生产可改成具体域名）
+		credentials: true,
+		allowedHeaders: ['Content-Type', 'Authorization'],
+		methods: ['GET', 'POST', 'OPTIONS'],
+	},
 });
 export default {
 	async fetch(request, env, ctx) {
