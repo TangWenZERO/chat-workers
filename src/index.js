@@ -89,7 +89,7 @@ async function processDeepSeekStream(reader, decoder, writer) {
 // graphql 请求deepseek 返回流数据 函数
 const graphQlMessage = async function* (_parent, args) {
 	const { prompt, token } = args;
-	
+
 	// 获取模型名称，如果未提供则使用默认值
 	const getModelName = () => {
 		// 如果有全局model变量则使用，否则使用默认值
@@ -98,7 +98,7 @@ const graphQlMessage = async function* (_parent, args) {
 		}
 		return 'deepseek-chat';
 	};
-	
+
 	const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
 		method: 'POST',
 		headers: {
@@ -116,13 +116,13 @@ const graphQlMessage = async function* (_parent, args) {
 		console.error('DeepSeek API error:', errorText);
 		throw new Error(`DeepSeek API error: ${response.status}`);
 	}
-	
+
 	// 创建流处理需要的组件
 	const { readable, writable } = new TransformStream();
 	const writer = writable.getWriter();
 	const reader = response.body.getReader();
 	const decoder = new TextDecoder();
-	
+
 	try {
 		let buffer = '';
 
@@ -210,7 +210,7 @@ const yoga = createYoga({
 			type Subscription {
 				chatStream(prompt: [MessageInput!]!, token: String!): String!
 			}
-			
+
 			input MessageInput {
 				role: String!
 				content: String!
@@ -229,7 +229,7 @@ const yoga = createYoga({
 			},
 		},
 	}),
-	graphqlEndpoint: '/graphql',
+	graphqlEndpoint: '/graphql/see',
 	graphiql: {
 		subscriptionsProtocol: 'SSE',
 	},
