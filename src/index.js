@@ -198,7 +198,9 @@ const yoga = createYoga({
 		`,
 		resolvers: {
 			Query: {
-				hello: () => 'Hello World!',
+				message: () => 'Hello World!',
+				model: () => 'deeseek',
+				token: () => '',
 			},
 			Subscription: {
 				chatStream: {
